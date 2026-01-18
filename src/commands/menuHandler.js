@@ -145,67 +145,83 @@ export function setupMenuHandlers(bot) {
     
     // Action handlers
     else if (data === 'action_profile') {
-      handleProfile(bot, { chat: { id: chatId }, from: query.from });
+      const fakeMsg = { chat: { id: chatId }, from: query.from };
+      handleProfile(bot, fakeMsg);
     }
     
     else if (data === 'action_members') {
-      handleMembers(bot, { chat: { id: chatId } });
+      const fakeMsg = { chat: { id: chatId } };
+      handleMembers(bot, fakeMsg);
     }
     
     else if (data === 'action_battles') {
-      handleBattles(bot, { chat: { id: chatId } });
+      const fakeMsg = { chat: { id: chatId } };
+      handleBattles(bot, fakeMsg);
     }
     
     else if (data === 'action_targets') {
-      handleTargets(bot, { chat: { id: chatId } });
+      const fakeMsg = { chat: { id: chatId } };
+      handleTargets(bot, fakeMsg);
     }
     
     else if (data === 'action_war') {
-      handleWarCoordination(bot, { chat: { id: chatId } });
+      const fakeMsg = { chat: { id: chatId } };
+      handleWarCoordination(bot, fakeMsg);
     }
     
     else if (data === 'action_stats') {
-      handleStats(bot, { chat: { id: chatId } });
+      const fakeMsg = { chat: { id: chatId } };
+      handleStats(bot, fakeMsg);
     }
     
     else if (data === 'action_advstats') {
-      handleAdvancedStats(bot, { chat: { id: chatId } });
+      const fakeMsg = { chat: { id: chatId } };
+      handleAdvancedStats(bot, fakeMsg);
     }
     
     else if (data === 'action_chart') {
-      handleGuildChart(bot, { chat: { id: chatId } });
+      const fakeMsg = { chat: { id: chatId } };
+      handleGuildChart(bot, fakeMsg);
     }
     
     else if (data === 'action_activity') {
-      handleActivityChart(bot, { chat: { id: chatId } });
+      const fakeMsg = { chat: { id: chatId } };
+      handleActivityChart(bot, fakeMsg);
     }
     
     else if (data === 'action_resources') {
-      handleResources(bot, { chat: { id: chatId } });
+      const fakeMsg = { chat: { id: chatId } };
+      handleResources(bot, fakeMsg);
     }
     
     else if (data === 'action_events') {
-      handleEvents(bot, { chat: { id: chatId } });
+      const fakeMsg = { chat: { id: chatId } };
+      handleEvents(bot, fakeMsg);
     }
     
     else if (data === 'action_leaderboard') {
-      handleLeaderboard(bot, { chat: { id: chatId } });
+      const fakeMsg = { chat: { id: chatId } };
+      handleLeaderboard(bot, fakeMsg);
     }
     
     else if (data === 'action_game') {
-      handleMiniGame(bot, { chat: { id: chatId } });
+      const fakeMsg = { chat: { id: chatId } };
+      handleMiniGame(bot, fakeMsg);
     }
     
     else if (data === 'action_guildinfo') {
-      handleGuildInfo(bot, { chat: { id: chatId } });
+      const fakeMsg = { chat: { id: chatId } };
+      handleGuildInfo(bot, fakeMsg);
     }
     
     else if (data === 'action_roles') {
-      handleRoles(bot, { chat: { id: chatId } });
+      const fakeMsg = { chat: { id: chatId } };
+      handleRoles(bot, fakeMsg);
     }
     
     else if (data === 'action_myrole') {
-      handleMyRole(bot, { chat: { id: chatId }, from: query.from });
+      const fakeMsg = { chat: { id: chatId }, from: query.from };
+      handleMyRole(bot, fakeMsg);
     }
     
     // Quick actions

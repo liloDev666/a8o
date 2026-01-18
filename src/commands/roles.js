@@ -70,9 +70,7 @@ export function handleSetRole(bot, msg, match) {
 
 export function handleRoles(bot, msg) {
   const chatId = msg.chat.id;
-  const userId = msg.from.id;
   const db = getDatabase();
-  const lang = getUserLanguage(userId, db);
   
   let roleList = `👑 *GUILD HIERARCHY*\n\n`;
   
@@ -89,6 +87,7 @@ export function handleRoles(bot, msg) {
     roleList += '\n';
   });
   
+  const userId = msg.from?.id;
   roleList += `\n*Your Role:* ${getMemberRole(userId)}`;
   
   bot.sendMessage(chatId, roleList, { parse_mode: 'Markdown' });
