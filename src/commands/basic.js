@@ -1,7 +1,6 @@
 import { t, getUserLanguage } from '../i18n/translations.js';
 import { getDatabase } from '../database.js';
 import { getMainMenu } from '../ui/menus.js';
-import { getMainMenu } from '../ui/menus.js';
 
 export function handleStart(bot, msg) {
   const chatId = msg.chat.id;
@@ -38,79 +37,6 @@ ${t(lang, 'welcome.footer')}
   bot.sendMessage(chatId, welcomeMessage, { 
     parse_mode: 'Markdown',
     reply_markup: getMainMenu()
-  });
-}
-
-export function handleHelp(bot, msg) {
-  const chatId = msg.chat.id;
-  
-  const keyboard = {
-    inline_keyboard: [
-      [
-        { text: '👥 Members', callback_data: 'help_members' },
-        { text: '⚔️ Battles', callback_data: 'help_battles' }
-      ],
-      [
-        { text: '📊 Analytics', callback_data: 'help_analytics' },
-        { text: '🎮 Games', callback_data: 'help_games' }
-      ],
-      [
-        { text: '🔔 Alerts', callback_data: 'help_alerts' },
-        { text: '📸 Scanner', callback_data: 'help_scanner' }
-      ]
-    ]
-  };
-  
-  const helpMessage = `
-📋 *A8O GUILD BOT - COMMAND CENTER*
-
-*👥 MEMBERS*
-\`/register <name>\` - Join the guild
-\`/profile\` - Your stats
-\`/members\` - Member list
-
-*⚔️ BATTLES*
-\`/addbattle <enemy>|<result>|<kills>\`
-\`/battles\` - Battle history
-\`/addtarget <name>|<guild>|<might>\`
-\`/targets\` - Active targets
-\`/war\` - War coordination
-
-*📊 ANALYTICS*
-\`/stats\` - Guild stats
-\`/advstats\` - Advanced stats
-\`/chart\` - Might chart
-\`/activity\` - Activity chart
-
-*🎮 CONTESTS & GAMES*
-\`/startcontest <name>|<type>|<hours>\`
-\`/leaderboard\` - Contest rankings
-\`/game\` - Play mini-games
-
-*🔔 ALERTS*
-\`/remind <event>|<time>\`
-\`/monster <info>\` - Monster alert
-\`/darknest <level>\` - Darknest alert
-\`/subscribe <type>\` - Get notifications
-
-*📸 SCANNER*
-\`/scan\` - Analyze screenshot
-\`/scanhelp\` - Scanner guide
-
-*📅 EVENTS*
-\`/addevent <name>|<date>|<time>\`
-\`/events\` - Upcoming events
-
-*📦 RESOURCES*
-\`/addresource <type> <amount>\`
-\`/resources\` - Resource log
-
-Click buttons below for detailed help! 💪
-  `;
-  
-  bot.sendMessage(chatId, helpMessage, { 
-    parse_mode: 'Markdown',
-    reply_markup: keyboard 
   });
 }
 
@@ -168,6 +94,3 @@ export function handleMenu(bot, msg) {
     }
   );
 }
-
-
-import { getMainMenu } from '../ui/menus.js';
