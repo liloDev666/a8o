@@ -11,41 +11,39 @@ export function handleAdminHelp(bot, msg) {
     return;
   }
   
-  const adminHelp = `
-🔧 *BOT ADMIN COMMANDS*
+  const adminHelp = `🔧 BOT ADMIN COMMANDS
 
-*🔑 Super Admin Powers:*
+🔑 Super Admin Powers:
 You have FULL access to all bot features regardless of your in-game role!
 
-*👑 Role Management:*
-\`/setrole @user R5\` - Assign any role (including R5)
-\`/promote @user\` - Promote member
-\`/demote @user\` - Demote member
+👑 Role Management:
+/setrole @user R5 - Assign any role (including R5)
+/promote @user - Promote member
+/demote @user - Demote member
 
-*📊 Admin Stats:*
-\`/adminstats\` - Detailed bot statistics
-\`/admininfo\` - Bot configuration info
+📊 Admin Stats:
+/adminstats - Detailed bot statistics
+/admininfo - Bot configuration info
 
-*🛠️ Bot Control:*
-\`/announce <message>\` - Send announcements
-\`/translateon\` - Enable auto-translation
-\`/translateoff\` - Disable auto-translation
+🛠️ Bot Control:
+/announce <message> - Send announcements
+/translateon - Enable auto-translation
+/translateoff - Disable auto-translation
 
-*💡 Pro Tips:*
+💡 Pro Tips:
 • You can assign R5 to the actual guild leader
 • You maintain super admin access always
 • Your permissions override role restrictions
 • Use responsibly! 😊
 
-*Example Setup:*
-1. \`/register YourName\` (you'll be R1, but still admin)
-2. \`/setrole @ActualLeader R5\` (make real leader R5)
-3. \`/setrole @Officer1 R4\` (assign officers)
+Example Setup:
+1. /register YourName (you'll be R1, but still admin)
+2. /setrole @ActualLeader R5 (make real leader R5)
+3. /setrole @Officer1 R4 (assign officers)
 
-You're the bot creator - you have ultimate control! 👑
-  `;
+You're the bot creator - you have ultimate control! 👑`;
   
-  bot.sendMessage(chatId, adminHelp, { parse_mode: 'Markdown' });
+  bot.sendMessage(chatId, adminHelp);
 }
 
 export function handleAdminStats(bot, msg) {
