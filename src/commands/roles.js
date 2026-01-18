@@ -9,8 +9,30 @@ const ROLES = {
   R1: { name: 'Member', level: 1, emoji: '⚔️', permissions: ['view', 'add_resources'] }
 };
 
+// System Admin IDs (from environment variables)
+const SYSTEM_ADMINS = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
+
+export function isSystemAdmin(userId) {
+  return SYSTEM_ADMINS.includes(userId);
+}
+
 export function hasPermission(userId, permission) {
+  // Check if user is bot admin (super admin)
+  const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
+  if (adminIds.includes(userId)) {
+    return true; // Bot admins have ALL permissions
+  }
+  
   const member = getMember(userId);
+  if (!member) return false;
+  
+  const role = ROLES[member.role] || ROLES.R1;
+  
+  // R5 has all permissions
+  if (role.level === 5) return true;
+  
+  return role.permissions.includes(permission);
+}
   if (!member) return false;
   
   const role = ROLES[member.role] || ROLES.R1;
@@ -27,9 +49,14 @@ export function handleSetRole(bot, msg, match) {
   const db = getDatabase();
   const lang = getUserLanguage(userId, db);
   
-  // Only R5 can set roles
-  if (!hasPermission(userId, 'all')) {
-    bot.sendMessage(chatId, '❌ Only the guild leader (R5) can assign roles!');
+  // Check if user is bot admin OR R5
+  const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
+  const isBotAdmin = adminIds.includes(userId);
+  const member = getMember(userId);
+  const isR5 = member && member.role === 'R5';
+  
+  if (!isBotAdmin && !isR5) {
+    bot.sendMessage(chatId, '❌ Only bot admins or guild leader (R5) can assign roles!');
     return;
   }
   
@@ -62,8 +89,10 @@ export function handleSetRole(bot, msg, match) {
   updateMember(targetMember.userId, { role });
   
   const roleInfo = ROLES[role];
+  const adminNote = isBotAdmin ? ' (Bot Admin Override)' : '';
+  
   bot.sendMessage(chatId, 
-    `✅ ${roleInfo.emoji} *${targetMember.gameName}* promoted to *${roleInfo.name} (${role})*!\n\nPermissions: ${roleInfo.permissions.join(', ')}`,
+    `✅ ${roleInfo.emoji} *${targetMember.gameName}* promoted to *${roleInfo.name} (${role})*!${adminNote}\n\nPermissions: ${roleInfo.permissions.join(', ')}`,
     { parse_mode: 'Markdown' }
   );
 }
@@ -126,8 +155,12 @@ export function handlePromote(bot, msg, match) {
   const userId = msg.from.id;
   const db = getDatabase();
   
-  if (!hasPermission(userId, 'manage_members')) {
-    bot.sendMessage(chatId, '❌ You need R4+ permissions to promote members!');
+  // Check if user is bot admin OR has manage_members permission
+  const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
+  const isBotAdmin = adminIds.includes(userId);
+  
+  if (!isBotAdmin && !hasPermission(userId, 'manage_members')) {
+    bot.sendMessage(chatId, '❌ You need R4+ permissions or be a bot admin to promote members!');
     return;
   }
   
@@ -142,19 +175,21 @@ export function handlePromote(bot, msg, match) {
   }
   
   const currentRole = ROLES[targetMember.role] || ROLES.R1;
-  const newRoleLevel = Math.min(currentRole.level + 1, 4); // Can't promote to R5
+  const newRoleLevel = Math.min(currentRole.level + 1, 4); // Can't promote to R5 via promote
   const newRoleCode = Object.keys(ROLES).find(k => ROLES[k].level === newRoleLevel);
   
   if (newRoleLevel === currentRole.level) {
-    bot.sendMessage(chatId, '❌ Cannot promote further! Only R5 can assign R5 role.');
+    bot.sendMessage(chatId, '❌ Cannot promote further! Use /setrole for R5 assignment.');
     return;
   }
   
   updateMember(targetMember.userId, { role: newRoleCode });
   
   const newRole = ROLES[newRoleCode];
+  const adminNote = isBotAdmin ? ' (Bot Admin)' : '';
+  
   bot.sendMessage(chatId, 
-    `🎉 ${newRole.emoji} *${targetMember.gameName}* promoted to *${newRole.name} (${newRoleCode})*!`,
+    `🎉 ${newRole.emoji} *${targetMember.gameName}* promoted to *${newRole.name} (${newRoleCode})*!${adminNote}`,
     { parse_mode: 'Markdown' }
   );
 }

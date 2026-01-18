@@ -12,6 +12,7 @@ import { handleSetLanguage, handleLanguages, handleLanguageCallback } from './la
 import { handleSetRole, handleRoles, handleMyRole, handlePromote, handleDemote, hasPermission } from './roles.js';
 import { handleTranslate, handleTranslateOn, handleTranslateOff, handleTranslateHelp, handleAutoTranslate } from './translate.js';
 import { setupMenuHandlers } from './menuHandler.js';
+import { handleAdminHelp, handleAdminStats, handleAdminInfo } from './admin.js';
 
 export function setupCommands(bot) {
   // Setup menu handlers
@@ -21,6 +22,11 @@ export function setupCommands(bot) {
   bot.onText(/\/start/, (msg) => handleStart(bot, msg));
   bot.onText(/\/help/, (msg) => handleHelp(bot, msg));
   bot.onText(/\/menu/, (msg) => handleMenu(bot, msg));
+  
+  // Admin commands
+  bot.onText(/\/adminhelp/, (msg) => handleAdminHelp(bot, msg));
+  bot.onText(/\/adminstats/, (msg) => handleAdminStats(bot, msg));
+  bot.onText(/\/admininfo/, (msg) => handleAdminInfo(bot, msg));
   
   // Language commands
   bot.onText(/\/setlang (.+)/, (msg, match) => handleSetLanguage(bot, msg, match));
