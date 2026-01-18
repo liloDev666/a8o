@@ -1,0 +1,24 @@
+{
+  "name": "a8o-guild-bot",
+  "version": "2.0.0",
+  "description": "Advanced Lords Mobile Guild A8O Telegram Bot",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": ["telegram", "bot", "lords-mobile", "guild"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3",
+    "axios": "^1.6.7",
+    "chart.js": "^4.4.1",
+    "chartjs-node-canvas": "^4.1.6",
+    "tesseract.js": "^5.0.4",
+    "canvas": "^2.11.2"
+  }
+}
