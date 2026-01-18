@@ -12,11 +12,13 @@ const ROLES = {
 export function hasPermission(userId, permission) {
   // Check if user is bot admin (super admin)
   const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
-  if (adminIds.includes(userId)) {
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  
+  if (adminIds.includes(numericUserId)) {
     return true; // Bot admins have ALL permissions
   }
   
-  const member = getMember(userId);
+  const member = getMember(numericUserId);
   if (!member) return false;
   
   const role = ROLES[member.role] || ROLES.R1;
@@ -34,8 +36,9 @@ export function handleSetRole(bot, msg, match) {
   
   // Check if user is bot admin OR R5
   const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
-  const isBotAdmin = adminIds.includes(userId);
-  const member = getMember(userId);
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  const isBotAdmin = adminIds.includes(numericUserId);
+  const member = getMember(numericUserId);
   const isR5 = member && member.role === 'R5';
   
   if (!isBotAdmin && !isR5) {
@@ -105,7 +108,10 @@ export function handleRoles(bot, msg) {
 export function handleMyRole(bot, msg) {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
-  const member = getMember(userId);
+  
+  // Ensure userId is a number for consistent comparison
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  const member = getMember(numericUserId);
   
   if (!member) {
     bot.sendMessage(chatId, '❌ You need to /register first!');
@@ -116,7 +122,7 @@ export function handleMyRole(bot, msg) {
   
   // Check if user is bot admin
   const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
-  const isBotAdmin = adminIds.includes(userId);
+  const isBotAdmin = adminIds.includes(numericUserId);
   
   let message = `${role.emoji} Your Role: ${role.name} (${member.role})\n\n`;
   
@@ -147,9 +153,10 @@ export function handlePromote(bot, msg, match) {
   
   // Check if user is bot admin OR has manage_members permission
   const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
-  const isBotAdmin = adminIds.includes(userId);
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  const isBotAdmin = adminIds.includes(numericUserId);
   
-  if (!isBotAdmin && !hasPermission(userId, 'manage_members')) {
+  if (!isBotAdmin && !hasPermission(numericUserId, 'manage_members')) {
     bot.sendMessage(chatId, '❌ You need R4+ permissions or be a bot admin to promote members!');
     return;
   }
@@ -190,9 +197,10 @@ export function handleDemote(bot, msg, match) {
   
   // Check if user is bot admin OR has manage_members permission
   const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
-  const isBotAdmin = adminIds.includes(userId);
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  const isBotAdmin = adminIds.includes(numericUserId);
   
-  if (!isBotAdmin && !hasPermission(userId, 'manage_members')) {
+  if (!isBotAdmin && !hasPermission(numericUserId, 'manage_members')) {
     bot.sendMessage(chatId, '❌ You need R4+ permissions or be a bot admin to demote members!');
     return;
   }
@@ -227,14 +235,15 @@ export function handleDemote(bot, msg, match) {
 }
 
 function getMemberRole(userId) {
-  const member = getMember(userId);
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  const member = getMember(numericUserId);
   if (!member) return 'Not registered';
   
   const role = ROLES[member.role] || ROLES.R1;
   
   // Check if user is bot admin
   const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
-  const isBotAdmin = adminIds.includes(userId);
+  const isBotAdmin = adminIds.includes(numericUserId);
   
   return `${role.emoji} ${role.name} (${member.role})${isBotAdmin ? ' + Bot Admin' : ''}`;
 }

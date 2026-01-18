@@ -220,7 +220,15 @@ export function setupMenuHandlers(bot) {
     }
     
     else if (data === 'action_myrole') {
-      const fakeMsg = { chat: { id: chatId }, from: query.from };
+      // Create proper message object for handleMyRole
+      const fakeMsg = { 
+        chat: { id: chatId }, 
+        from: { 
+          id: query.from.id,
+          username: query.from.username,
+          first_name: query.from.first_name
+        }
+      };
       handleMyRole(bot, fakeMsg);
     }
     
@@ -236,8 +244,7 @@ export function setupMenuHandlers(bot) {
     // Instruction messages for actions requiring input
     else if (data === 'action_register') {
       bot.sendMessage(chatId, 
-        '📝 *Register with the guild!*\n\nUse: `/register YourGameName`\n\nExample: `/register DragonSlayer`',
-        { parse_mode: 'Markdown' }
+        '📝 Register with the guild!\n\nUse: /register YourGameName\n\nExample: /register DragonSlayer'
       );
     }
     

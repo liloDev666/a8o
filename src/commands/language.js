@@ -17,15 +17,18 @@ export function handleSetLanguage(bot, msg, match) {
     return;
   }
   
-  const member = getMember(userId);
+  // Ensure userId is a number for consistent comparison
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  const member = getMember(numericUserId);
   if (member) {
-    updateMember(userId, { language: lang });
+    updateMember(numericUserId, { language: lang });
   } else {
     const db = getDatabase();
     db.members.push({
-      userId,
+      userId: numericUserId,
       username: msg.from.username || msg.from.first_name,
       gameName: null,
+      role: 'R1',
       language: lang,
       joinedAt: Date.now(),
       might: 0,
@@ -104,15 +107,18 @@ export function handleLanguageCallback(bot, query) {
   const userId = query.from.id;
   const lang = query.data.split('_')[1];
   
-  const member = getMember(userId);
+  // Ensure userId is a number for consistent comparison
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  const member = getMember(numericUserId);
   if (member) {
-    updateMember(userId, { language: lang });
+    updateMember(numericUserId, { language: lang });
   } else {
     const db = getDatabase();
     db.members.push({
-      userId,
+      userId: numericUserId,
       username: query.from.username || query.from.first_name,
       gameName: null,
+      role: 'R1',
       language: lang,
       joinedAt: Date.now(),
       might: 0,

@@ -50,11 +50,21 @@ export function addMember(member) {
 }
 
 export function getMember(userId) {
-  return db.members.find(m => m.userId === userId);
+  // Ensure consistent type comparison - convert both to numbers
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  return db.members.find(m => {
+    const memberUserId = typeof m.userId === 'string' ? parseInt(m.userId) : m.userId;
+    return memberUserId === numericUserId;
+  });
 }
 
 export function updateMember(userId, updates) {
-  const index = db.members.findIndex(m => m.userId === userId);
+  // Ensure consistent type comparison - convert both to numbers
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  const index = db.members.findIndex(m => {
+    const memberUserId = typeof m.userId === 'string' ? parseInt(m.userId) : m.userId;
+    return memberUserId === numericUserId;
+  });
   if (index !== -1) {
     db.members[index] = { ...db.members[index], ...updates };
     saveDatabase();

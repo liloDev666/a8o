@@ -21,7 +21,9 @@ export function handleAddResource(bot, msg, match) {
     return;
   }
   
-  const member = getMember(userId);
+  // Ensure userId is a number for consistent comparison
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  const member = getMember(numericUserId);
   const username = member ? member.gameName : (msg.from.username || msg.from.first_name);
   
   const resource = {

@@ -5,7 +5,9 @@ export function handleRegister(bot, msg, match) {
   const userId = msg.from.id;
   const gameName = match[1].trim();
   
-  const existingMember = getMember(userId);
+  // Ensure userId is stored as a number
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  const existingMember = getMember(numericUserId);
   
   if (existingMember) {
     bot.sendMessage(chatId, `You're already registered as *${existingMember.gameName}*!`, 
@@ -14,9 +16,10 @@ export function handleRegister(bot, msg, match) {
   }
   
   const member = {
-    userId,
+    userId: numericUserId,
     username: msg.from.username || msg.from.first_name,
     gameName,
+    role: 'R1', // Default role for new members
     joinedAt: Date.now(),
     might: 0,
     kills: 0,
@@ -35,7 +38,9 @@ export function handleProfile(bot, msg) {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
   
-  const member = getMember(userId);
+  // Ensure userId is a number for consistent comparison
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  const member = getMember(numericUserId);
   
   if (!member) {
     bot.sendMessage(chatId, 
