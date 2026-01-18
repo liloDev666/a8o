@@ -9,13 +9,6 @@ const ROLES = {
   R1: { name: 'Member', level: 1, emoji: '⚔️', permissions: ['view', 'add_resources'] }
 };
 
-// System Admin IDs (from environment variables)
-const SYSTEM_ADMINS = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
-
-export function isSystemAdmin(userId) {
-  return SYSTEM_ADMINS.includes(userId);
-}
-
 export function hasPermission(userId, permission) {
   // Check if user is bot admin (super admin)
   const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
@@ -24,15 +17,6 @@ export function hasPermission(userId, permission) {
   }
   
   const member = getMember(userId);
-  if (!member) return false;
-  
-  const role = ROLES[member.role] || ROLES.R1;
-  
-  // R5 has all permissions
-  if (role.level === 5) return true;
-  
-  return role.permissions.includes(permission);
-}
   if (!member) return false;
   
   const role = ROLES[member.role] || ROLES.R1;
@@ -134,11 +118,17 @@ export function handleMyRole(bot, msg) {
   
   const role = ROLES[member.role] || ROLES.R1;
   
+  // Check if user is bot admin
+  const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
+  const isBotAdmin = adminIds.includes(userId);
+  
   const message = `
 ${role.emoji} *Your Role: ${role.name} (${member.role})*
 
 *Permissions:*
 ${role.permissions.map(p => `✅ ${p}`).join('\n')}
+
+${isBotAdmin ? '🔧 *SUPER ADMIN STATUS*\n✅ Bot Administrator\n✅ Override All Permissions\n\n' : ''}
 
 *Your Stats:*
 ⚔️ Might: ${member.might.toLocaleString()}
@@ -199,8 +189,12 @@ export function handleDemote(bot, msg, match) {
   const userId = msg.from.id;
   const db = getDatabase();
   
-  if (!hasPermission(userId, 'manage_members')) {
-    bot.sendMessage(chatId, '❌ You need R4+ permissions to demote members!');
+  // Check if user is bot admin OR has manage_members permission
+  const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
+  const isBotAdmin = adminIds.includes(userId);
+  
+  if (!isBotAdmin && !hasPermission(userId, 'manage_members')) {
+    bot.sendMessage(chatId, '❌ You need R4+ permissions or be a bot admin to demote members!');
     return;
   }
   
@@ -226,8 +220,10 @@ export function handleDemote(bot, msg, match) {
   updateMember(targetMember.userId, { role: newRoleCode });
   
   const newRole = ROLES[newRoleCode];
+  const adminNote = isBotAdmin ? ' (Bot Admin)' : '';
+  
   bot.sendMessage(chatId, 
-    `⬇️ ${newRole.emoji} *${targetMember.gameName}* demoted to *${newRole.name} (${newRoleCode})*`,
+    `⬇️ ${newRole.emoji} *${targetMember.gameName}* demoted to *${newRole.name} (${newRoleCode})*${adminNote}`,
     { parse_mode: 'Markdown' }
   );
 }
@@ -237,7 +233,12 @@ function getMemberRole(userId) {
   if (!member) return 'Not registered';
   
   const role = ROLES[member.role] || ROLES.R1;
-  return `${role.emoji} ${role.name} (${member.role})`;
+  
+  // Check if user is bot admin
+  const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
+  const isBotAdmin = adminIds.includes(userId);
+  
+  return `${role.emoji} ${role.name} (${member.role})${isBotAdmin ? ' + Bot Admin' : ''}`;
 }
 
 export { ROLES };
