@@ -15,10 +15,6 @@
     "node-telegram-bot-api": "^0.66.0",
     "dotenv": "^16.4.5",
     "node-cron": "^3.0.3",
-    "axios": "^1.6.7",
-    "chart.js": "^4.4.1",
-    "chartjs-node-canvas": "^4.1.6",
-    "tesseract.js": "^5.0.4",
-    "canvas": "^2.11.2"
+    "axios": "^1.6.7"
   }
 }

@@ -1,80 +1,29 @@
-import Tesseract from 'tesseract.js';
-import { getMember, updateMember } from '../database.js';
-
 export async function handleScreenshot(bot, msg) {
   const chatId = msg.chat.id;
-  const userId = msg.from.id;
   
-  if (!msg.photo || msg.photo.length === 0) {
-    bot.sendMessage(chatId, '❌ Please send a screenshot with this command!');
-    return;
-  }
-  
-  bot.sendMessage(chatId, '🔍 Analyzing screenshot...');
-  
-  try {
-    const photo = msg.photo[msg.photo.length - 1];
-    const file = await bot.getFile(photo.file_id);
-    const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${file.file_path}`;
-    
-    const { data: { text } } = await Tesseract.recognize(fileUrl, 'eng');
-    
-    // Extract might from text
-    const mightMatch = text.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*[MmKk]?/);
-    
-    if (mightMatch) {
-      let might = parseFloat(mightMatch[1].replace(/,/g, ''));
-      
-      // Convert K/M to actual numbers
-      if (text.toLowerCase().includes('m')) {
-        might *= 1000000;
-      } else if (text.toLowerCase().includes('k')) {
-        might *= 1000;
-      }
-      
-      const member = getMember(userId);
-      if (member) {
-        updateMember(userId, { might: Math.floor(might) });
-        
-        bot.sendMessage(chatId, 
-          `✅ *Stats Updated!*\n\n⚔️ Might: ${Math.floor(might).toLocaleString()}\n\nGreat progress! 💪`,
-          { parse_mode: 'Markdown' }
-        );
-      } else {
-        bot.sendMessage(chatId, 
-          `📊 Detected Might: ${Math.floor(might).toLocaleString()}\n\nRegister first with /register to save stats!`
-        );
-      }
-    } else {
-      bot.sendMessage(chatId, '❌ Could not detect stats. Make sure the screenshot is clear!');
-    }
-  } catch (error) {
-    console.error('OCR Error:', error);
-    bot.sendMessage(chatId, '❌ Error analyzing screenshot. Try again with a clearer image!');
-  }
+  bot.sendMessage(chatId, 
+    '📸 *Screenshot Scanner*\n\nOCR feature is temporarily disabled to ensure stable deployment.\n\nPlease manually update your stats using:\n`/register YourName` to set your game name\n\nFull OCR support coming soon!',
+    { parse_mode: 'Markdown' }
+  );
 }
 
 export function handleScanHelp(bot, msg) {
   const chatId = msg.chat.id;
   
   const message = `
-📸 *Screenshot Analysis*
+📸 *Screenshot Analysis (Coming Soon)*
 
-Send me screenshots of:
-• Your profile (to update might)
-• Battle reports (to log kills)
-• Resource screens (to track resources)
+This feature will allow you to:
+• Upload profile screenshots to auto-update might
+• Scan battle reports to extract kills
+• Parse resource screens automatically
 
-*How to use:*
-1. Take a clear screenshot
-2. Send it with caption: \`/scan\`
-3. I'll extract and save the data!
+*For now, please use manual commands:*
+\`/register YourGameName\` - Set your name
+\`/addbattle enemy|result|kills\` - Log battles
+\`/addresource type amount\` - Log resources
 
-*Tips for best results:*
-✅ Good lighting
-✅ Clear text
-✅ Full screen capture
-❌ Avoid blurry images
+Full OCR support will be added in the next update! 🚀
   `;
   
   bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
