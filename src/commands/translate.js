@@ -40,7 +40,7 @@ export function handleTranslateOn(bot, msg) {
   saveDatabase();
   
   bot.sendMessage(chatId, 
-    `✅ *Auto-translation enabled!*\n\nMessages will be automatically translated to each member's language.\n\nUse /translateoff to disable.`,
+    `✅ *Auto-translation enabled!*\n\n🌍 Messages will be automatically translated\n📝 Only messages 10+ characters\n🔢 Max 4 languages shown\n⚡ Smart filtering to avoid spam\n\nUse /translateoff to disable.`,
     { parse_mode: 'Markdown' }
   );
 }
@@ -99,8 +99,8 @@ export async function handleAutoTranslate(bot, msg) {
     return;
   }
   
-  // Don't translate if no text
-  if (!msg.text || msg.text.trim().length === 0) {
+  // Don't translate if no text or too short
+  if (!msg.text || msg.text.trim().length < 3) {
     return;
   }
   
@@ -114,14 +114,11 @@ export async function handleAutoTranslate(bot, msg) {
   });
   
   if (!sender || !sender.language) {
-    console.log('Auto-translate: Sender not found or no language set for user:', numericUserId);
-    return;
+    return; // Silent return if sender not found or no language set
   }
   
   const senderLang = sender.language;
   const text = msg.text;
-  
-  console.log('Auto-translate: Processing message from', sender.gameName, 'in', senderLang);
   
   // Get all unique languages in the guild (except sender's)
   const targetLanguages = [...new Set(
@@ -130,38 +127,63 @@ export async function handleAutoTranslate(bot, msg) {
       .map(m => m.language)
   )];
   
-  console.log('Auto-translate: Target languages:', targetLanguages);
+  // Limit to max 4 languages to avoid spam (most common languages)
+  const maxLanguages = 4;
+  const limitedTargetLanguages = targetLanguages.slice(0, maxLanguages);
   
-  if (targetLanguages.length === 0) {
-    console.log('Auto-translate: No target languages found');
+  if (limitedTargetLanguages.length === 0) {
+    return; // No other languages to translate to
+  }
+  
+  // Only translate if message is longer than 10 characters to avoid spam
+  if (text.length < 10) {
     return;
   }
   
   try {
     // Translate to each language
     const translations = await Promise.all(
-      targetLanguages.map(async (lang) => {
+      limitedTargetLanguages.map(async (lang) => {
         const translated = await translateText(text, lang, senderLang);
         return { lang, text: translated };
       })
     );
     
-    // Send translations
-    let translationMessage = `🌍 *Auto-Translation*\n\n`;
-    translationMessage += `Original (${senderLang}): ${text}\n\n`;
+    // Filter out failed translations (where translated text equals original)
+    const successfulTranslations = translations.filter(t => 
+      t.text !== text && t.text.length > 0
+    );
     
-    translations.forEach(({ lang, text }) => {
-      const langEmoji = {
-        en: '🇬🇧', ru: '🇷🇺', ar: '🇸🇦', fr: '🇫🇷',
-        es: '🇪🇸', pt: '🇵🇹', de: '🇩🇪', zh: '🇨🇳'
-      };
-      translationMessage += `${langEmoji[lang] || '🌐'} ${lang.toUpperCase()}: ${text}\n`;
+    if (successfulTranslations.length === 0) {
+      return; // No successful translations
+    }
+    
+    // Create compact translation message
+    let translationMessage = `🌍 *${sender.gameName || sender.username}*\n\n`;
+    
+    // Show original with flag
+    const langEmojis = {
+      en: '🇬🇧', ru: '🇷🇺', ar: '🇸🇦', fr: '🇫🇷',
+      es: '🇪🇸', pt: '🇵🇹', de: '🇩🇪', zh: '🇨🇳'
+    };
+    
+    translationMessage += `${langEmojis[senderLang] || '🌐'} ${text}\n\n`;
+    
+    // Add translations
+    successfulTranslations.forEach(({ lang, text }) => {
+      translationMessage += `${langEmojis[lang] || '🌐'} ${text}\n`;
     });
     
+    // Add note if there were more languages
+    if (targetLanguages.length > maxLanguages) {
+      const remaining = targetLanguages.length - maxLanguages;
+      translationMessage += `\n_+${remaining} more languages available_`;
+    }
+    
     bot.sendMessage(chatId, translationMessage, { parse_mode: 'Markdown' });
-    console.log('Auto-translate: Sent translations');
   } catch (error) {
     console.error('Auto-translate error:', error);
+    // Silent fail - don't spam chat with error messages
   }
 }
 
@@ -175,7 +197,12 @@ export function handleTranslateHelp(bot, msg) {
 \`/translateon\` - Enable auto-translation
 \`/translateoff\` - Disable auto-translation
 
-When enabled, messages are automatically translated to all guild members' languages!
+*Smart Auto-Translation:*
+✅ Only translates messages 10+ characters
+✅ Shows max 4 most common languages
+✅ Compact format with flags
+✅ Filters failed translations
+✅ No spam from short messages
 
 *Manual Translation:*
 \`/translate <lang> | <text>\`
@@ -186,7 +213,7 @@ Result: Привет всем!
 
 *Supported Languages:*
 🇬🇧 en - English
-🇷🇺 ru - Russian
+🇷🇺 ru - Russian  
 🇸🇦 ar - Arabic
 🇫🇷 fr - French
 🇪🇸 es - Spanish
@@ -194,11 +221,12 @@ Result: Привет всем!
 🇩🇪 de - German
 🇨🇳 zh - Chinese
 
-*How Auto-Translation Works:*
+*How It Works:*
 1. Enable with /translateon
-2. Members set their language with /setlang
-3. When someone sends a message, it's automatically translated to all other languages
-4. Everyone sees the message in their language!
+2. Members set language with /setlang
+3. Send messages normally (10+ chars)
+4. Bot shows translations with flags
+5. Clean, professional format
 
 Perfect for international guilds! 🌍
   `;
