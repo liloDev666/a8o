@@ -99,8 +99,12 @@ export function handleRoles(bot, msg) {
     roleList += '\n';
   });
   
+  // Fix: Use proper user ID handling for "Your Role"
   const userId = msg.from?.id;
-  roleList += `\nYour Role: ${getMemberRole(userId)}`;
+  if (userId) {
+    const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+    roleList += `\nYour Role: ${getMemberRole(numericUserId)}`;
+  }
   
   bot.sendMessage(chatId, roleList);
 }
@@ -109,20 +113,38 @@ export function handleMyRole(bot, msg) {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
   
+  // Debug logging
+  console.log('=== MY ROLE DEBUG ===');
+  console.log('User ID from message:', userId, 'type:', typeof userId);
+  console.log('ADMIN_USER_IDS env:', process.env.ADMIN_USER_IDS);
+  
   // Ensure userId is a number for consistent comparison
   const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
   const member = getMember(numericUserId);
   
+  // Check if user is bot admin (super admin)
+  const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
+  const isBotAdmin = adminIds.includes(numericUserId);
+  
+  console.log('Parsed admin IDs:', adminIds);
+  console.log('Numeric user ID:', numericUserId);
+  console.log('Is bot admin:', isBotAdmin);
+  console.log('Member found:', member ? member.gameName : 'No');
+  console.log('===================');
+  
   if (!member) {
-    bot.sendMessage(chatId, '❌ You need to /register first!');
+    if (isBotAdmin) {
+      bot.sendMessage(chatId, 
+        `🔧 *SUPER ADMIN STATUS*\n\n✅ Bot Administrator\n✅ Override All Permissions\n✅ Can assign any role including R5\n\n❌ You need to /register first to get guild role!\n\nUse: \`/register YourGameName\``,
+        { parse_mode: 'Markdown' }
+      );
+    } else {
+      bot.sendMessage(chatId, '❌ You need to /register first!');
+    }
     return;
   }
   
   const role = ROLES[member.role] || ROLES.R1;
-  
-  // Check if user is bot admin
-  const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
-  const isBotAdmin = adminIds.includes(numericUserId);
   
   let message = `${role.emoji} Your Role: ${role.name} (${member.role})\n\n`;
   
@@ -134,7 +156,12 @@ export function handleMyRole(bot, msg) {
   if (isBotAdmin) {
     message += `\n🔧 SUPER ADMIN STATUS\n`;
     message += `✅ Bot Administrator\n`;
-    message += `✅ Override All Permissions\n\n`;
+    message += `✅ Override All Permissions\n`;
+    message += `✅ Can assign any role including R5\n\n`;
+    message += `*Super Admin Commands:*\n`;
+    message += `\`/setrole @username R5\` - Make someone guild leader\n`;
+    message += `\`/setrole @username R4\` - Make officer\n`;
+    message += `\`/adminhelp\` - Admin commands\n`;
   }
   
   message += `\nYour Stats:\n`;
@@ -143,7 +170,7 @@ export function handleMyRole(bot, msg) {
   message += `🤝 Helps: ${member.helps.toLocaleString()}\n`;
   message += `📅 Member since: ${new Date(member.joinedAt).toLocaleDateString()}`;
   
-  bot.sendMessage(chatId, message);
+  bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
 }
 
 export function handlePromote(bot, msg, match) {

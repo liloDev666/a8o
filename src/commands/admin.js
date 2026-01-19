@@ -4,10 +4,23 @@ export function handleAdminHelp(bot, msg) {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
   
+  // Debug logging
+  console.log('=== ADMIN HELP DEBUG ===');
+  console.log('User ID:', userId, 'type:', typeof userId);
+  console.log('ADMIN_USER_IDS env:', process.env.ADMIN_USER_IDS);
+  
   // Check if user is bot admin
   const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
-  if (!adminIds.includes(userId)) {
-    bot.sendMessage(chatId, '❌ This command is for bot administrators only!');
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  const isAdmin = adminIds.includes(numericUserId);
+  
+  console.log('Parsed admin IDs:', adminIds);
+  console.log('Numeric user ID:', numericUserId);
+  console.log('Is admin:', isAdmin);
+  console.log('=======================');
+  
+  if (!isAdmin) {
+    bot.sendMessage(chatId, `❌ This command is for bot administrators only!\n\nYour ID: ${numericUserId}\nAdmin IDs: ${adminIds.join(', ')}\n\nIf you should be an admin, check your Railway environment variables.`);
     return;
   }
   
