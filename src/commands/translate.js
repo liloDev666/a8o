@@ -1,29 +1,30 @@
 import axios from 'axios';
 import { getDatabase, saveDatabase } from '../database.js';
 
-// Free translation API (LibreTranslate or Google Translate fallback)
-const TRANSLATE_API = 'https://translate.googleapis.com/translate_a/single';
-
 export async function translateText(text, targetLang, sourceLang = 'auto') {
   try {
-    const response = await axios.get(TRANSLATE_API, {
-      params: {
-        client: 'gtx',
-        sl: sourceLang,
-        tl: targetLang,
-        dt: 't',
-        q: text
+    // Use Google Translate's public API endpoint
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+    
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     });
     
-    if (response.data && response.data[0]) {
-      return response.data[0].map(item => item[0]).join('');
+    if (response.data && response.data[0] && response.data[0][0]) {
+      // Extract translated text from response
+      const translatedText = response.data[0].map(item => item[0]).join('');
+      console.log(`Translated "${text}" from ${sourceLang} to ${targetLang}: "${translatedText}"`);
+      return translatedText;
     }
     
+    console.log('Translation API returned unexpected format:', response.data);
     return text;
   } catch (error) {
     console.error('Translation error:', error.message);
-    return text;
+    console.error('Failed to translate:', text);
+    return text; // Return original text if translation fails
   }
 }
 
@@ -98,12 +99,29 @@ export async function handleAutoTranslate(bot, msg) {
     return;
   }
   
+  // Don't translate if no text
+  if (!msg.text || msg.text.trim().length === 0) {
+    return;
+  }
+  
+  // Ensure userId is a number for consistent comparison
+  const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+  
   // Get sender's language
-  const sender = db.members.find(m => m.userId === userId);
-  if (!sender || !sender.language) return;
+  const sender = db.members.find(m => {
+    const memberUserId = typeof m.userId === 'string' ? parseInt(m.userId) : m.userId;
+    return memberUserId === numericUserId;
+  });
+  
+  if (!sender || !sender.language) {
+    console.log('Auto-translate: Sender not found or no language set for user:', numericUserId);
+    return;
+  }
   
   const senderLang = sender.language;
   const text = msg.text;
+  
+  console.log('Auto-translate: Processing message from', sender.gameName, 'in', senderLang);
   
   // Get all unique languages in the guild (except sender's)
   const targetLanguages = [...new Set(
@@ -112,29 +130,39 @@ export async function handleAutoTranslate(bot, msg) {
       .map(m => m.language)
   )];
   
-  if (targetLanguages.length === 0) return;
+  console.log('Auto-translate: Target languages:', targetLanguages);
   
-  // Translate to each language
-  const translations = await Promise.all(
-    targetLanguages.map(async (lang) => {
-      const translated = await translateText(text, lang, senderLang);
-      return { lang, text: translated };
-    })
-  );
+  if (targetLanguages.length === 0) {
+    console.log('Auto-translate: No target languages found');
+    return;
+  }
   
-  // Send translations
-  let translationMessage = `🌍 *Auto-Translation*\n\n`;
-  translationMessage += `Original (${senderLang}): ${text}\n\n`;
-  
-  translations.forEach(({ lang, text }) => {
-    const langEmoji = {
-      en: '🇬🇧', ru: '🇷🇺', ar: '🇸🇦', fr: '🇫🇷',
-      es: '🇪🇸', pt: '🇵🇹', de: '🇩🇪', zh: '🇨🇳'
-    };
-    translationMessage += `${langEmoji[lang] || '🌐'} ${lang.toUpperCase()}: ${text}\n`;
-  });
-  
-  bot.sendMessage(chatId, translationMessage, { parse_mode: 'Markdown' });
+  try {
+    // Translate to each language
+    const translations = await Promise.all(
+      targetLanguages.map(async (lang) => {
+        const translated = await translateText(text, lang, senderLang);
+        return { lang, text: translated };
+      })
+    );
+    
+    // Send translations
+    let translationMessage = `🌍 *Auto-Translation*\n\n`;
+    translationMessage += `Original (${senderLang}): ${text}\n\n`;
+    
+    translations.forEach(({ lang, text }) => {
+      const langEmoji = {
+        en: '🇬🇧', ru: '🇷🇺', ar: '🇸🇦', fr: '🇫🇷',
+        es: '🇪🇸', pt: '🇵🇹', de: '🇩🇪', zh: '🇨🇳'
+      };
+      translationMessage += `${langEmoji[lang] || '🌐'} ${lang.toUpperCase()}: ${text}\n`;
+    });
+    
+    bot.sendMessage(chatId, translationMessage, { parse_mode: 'Markdown' });
+    console.log('Auto-translate: Sent translations');
+  } catch (error) {
+    console.error('Auto-translate error:', error);
+  }
 }
 
 export function handleTranslateHelp(bot, msg) {
