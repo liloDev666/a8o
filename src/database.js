@@ -1,7 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 
-const DATA_DIR = './data';
+// Use Railway's persistent volume if available, otherwise local data folder
+const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH 
+  ? path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'data')
+  : './data';
+
 const DB_FILE = path.join(DATA_DIR, 'guild_data.json');
 
 let db = {
@@ -26,18 +30,45 @@ let db = {
 export function initDatabase() {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
+    console.log('📁 Created data directory:', DATA_DIR);
   }
   
   if (fs.existsSync(DB_FILE)) {
-    const data = fs.readFileSync(DB_FILE, 'utf8');
-    db = JSON.parse(data);
+    try {
+      const data = fs.readFileSync(DB_FILE, 'utf8');
+      db = JSON.parse(data);
+      console.log('📊 Database loaded successfully');
+      console.log(`👥 Members: ${db.members?.length || 0}`);
+      console.log(`⚔️ Battles: ${db.battles?.length || 0}`);
+      console.log(`📅 Events: ${db.events?.length || 0}`);
+    } catch (error) {
+      console.error('❌ Error loading database:', error.message);
+      console.log('🔄 Creating new database...');
+      saveDatabase();
+    }
   } else {
+    console.log('📝 Creating new database...');
     saveDatabase();
   }
+  
+  // Create backup on startup
+  createBackup();
 }
 
 export function saveDatabase() {
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+    
+    // Create backup every 10 saves
+    if (!saveDatabase.counter) saveDatabase.counter = 0;
+    saveDatabase.counter++;
+    
+    if (saveDatabase.counter % 10 === 0) {
+      createBackup();
+    }
+  } catch (error) {
+    console.error('❌ Save failed:', error.message);
+  }
 }
 
 export function getDatabase() {
@@ -88,4 +119,38 @@ export function addResource(resource) {
 
 export function getRecentResources(limit = 10) {
   return db.resources.slice(-limit).reverse();
+}
+// Backup system
+export function createBackup() {
+  try {
+    const backupFile = path.join(DATA_DIR, `backup_${Date.now()}.json`);
+    fs.writeFileSync(backupFile, JSON.stringify(db, null, 2));
+    console.log('💾 Backup created:', backupFile);
+    
+    // Keep only last 5 backups
+    cleanupBackups();
+  } catch (error) {
+    console.error('❌ Backup failed:', error.message);
+  }
+}
+
+function cleanupBackups() {
+  try {
+    const files = fs.readdirSync(DATA_DIR)
+      .filter(file => file.startsWith('backup_') && file.endsWith('.json'))
+      .map(file => ({
+        name: file,
+        path: path.join(DATA_DIR, file),
+        time: fs.statSync(path.join(DATA_DIR, file)).mtime
+      }))
+      .sort((a, b) => b.time - a.time);
+    
+    // Remove old backups (keep only 5)
+    files.slice(5).forEach(file => {
+      fs.unlinkSync(file.path);
+      console.log('🗑️ Removed old backup:', file.name);
+    });
+  } catch (error) {
+    console.error('❌ Cleanup failed:', error.message);
+  }
 }
