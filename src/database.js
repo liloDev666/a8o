@@ -1,12 +1,41 @@
 import fs from 'fs';
 import path from 'path';
 
-// Use Railway's persistent volume if available, otherwise local data folder
-const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH 
-  ? path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'data')
-  : './data';
+// Multiple data storage locations for redundancy
+const DATA_LOCATIONS = [
+  '/app/data',           // Railway volume (primary)
+  './data',              // Local fallback
+  '/tmp/guild-data'      // Temporary fallback
+];
 
+// Find the best available data directory
+function getDataDir() {
+  for (const dir of DATA_LOCATIONS) {
+    try {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      // Test write access
+      const testFile = path.join(dir, 'test.tmp');
+      fs.writeFileSync(testFile, 'test');
+      fs.unlinkSync(testFile);
+      console.log('📁 Using data directory:', dir);
+      return dir;
+    } catch (error) {
+      console.log('❌ Cannot use directory:', dir, error.message);
+    }
+  }
+  throw new Error('No writable data directory found!');
+}
+
+const DATA_DIR = getDataDir();
 const DB_FILE = path.join(DATA_DIR, 'guild_data.json');
+
+// Backup locations
+const BACKUP_LOCATIONS = [
+  path.join(DATA_DIR, 'backups'),
+  '/tmp/guild-backups'
+];
 
 let db = {
   members: [],
@@ -28,10 +57,7 @@ let db = {
 };
 
 export function initDatabase() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-    console.log('📁 Created data directory:', DATA_DIR);
-  }
+  console.log('🔄 Initializing database...');
   
   if (fs.existsSync(DB_FILE)) {
     try {
@@ -41,18 +67,80 @@ export function initDatabase() {
       console.log(`👥 Members: ${db.members?.length || 0}`);
       console.log(`⚔️ Battles: ${db.battles?.length || 0}`);
       console.log(`📅 Events: ${db.events?.length || 0}`);
+      
+      // Create backup on successful load
+      createBackup();
+      return;
     } catch (error) {
       console.error('❌ Error loading database:', error.message);
-      console.log('🔄 Creating new database...');
-      saveDatabase();
     }
-  } else {
-    console.log('📝 Creating new database...');
-    saveDatabase();
   }
   
-  // Create backup on startup
-  createBackup();
+  // Try to restore from backup
+  console.log('🔍 Searching for backups...');
+  const restored = tryRestoreFromBackup();
+  
+  if (!restored) {
+    console.log('📝 Creating new database...');
+    // Initialize with default admin user if available
+    initializeWithDefaults();
+  }
+  
+  saveDatabase();
+}
+
+function tryRestoreFromBackup() {
+  for (const backupDir of BACKUP_LOCATIONS) {
+    try {
+      if (!fs.existsSync(backupDir)) continue;
+      
+      const backupFiles = fs.readdirSync(backupDir)
+        .filter(file => file.startsWith('backup_') && file.endsWith('.json'))
+        .map(file => ({
+          name: file,
+          path: path.join(backupDir, file),
+          time: fs.statSync(path.join(backupDir, file)).mtime
+        }))
+        .sort((a, b) => b.time - a.time);
+      
+      if (backupFiles.length > 0) {
+        const latestBackup = backupFiles[0];
+        console.log('💾 Found backup:', latestBackup.name);
+        
+        const backupData = fs.readFileSync(latestBackup.path, 'utf8');
+        db = JSON.parse(backupData);
+        
+        console.log('✅ Restored from backup!');
+        console.log(`👥 Members restored: ${db.members?.length || 0}`);
+        return true;
+      }
+    } catch (error) {
+      console.error('❌ Backup restore failed:', error.message);
+    }
+  }
+  return false;
+}
+
+function initializeWithDefaults() {
+  // Check if we have admin user ID in environment
+  const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(id => parseInt(id)) || [];
+  
+  if (adminIds.length > 0) {
+    console.log('🔧 Pre-registering admin user...');
+    // Pre-register the admin user so they don't lose access
+    db.members = [{
+      userId: adminIds[0],
+      username: 'BotAdmin',
+      gameName: 'BotAdmin',
+      role: 'R1', // R1 but with super admin powers
+      joinedAt: Date.now(),
+      might: 0,
+      kills: 0,
+      helps: 0,
+      language: 'en'
+    }];
+    console.log('✅ Admin user pre-registered');
+  }
 }
 
 export function saveDatabase() {
@@ -120,33 +208,42 @@ export function addResource(resource) {
 export function getRecentResources(limit = 10) {
   return db.resources.slice(-limit).reverse();
 }
-// Backup system
+// Backup system with multiple locations
 export function createBackup() {
-  try {
-    const backupFile = path.join(DATA_DIR, `backup_${Date.now()}.json`);
-    fs.writeFileSync(backupFile, JSON.stringify(db, null, 2));
-    console.log('💾 Backup created:', backupFile);
-    
-    // Keep only last 5 backups
-    cleanupBackups();
-  } catch (error) {
-    console.error('❌ Backup failed:', error.message);
+  const timestamp = Date.now();
+  const backupFileName = `backup_${timestamp}.json`;
+  
+  for (const backupDir of BACKUP_LOCATIONS) {
+    try {
+      if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir, { recursive: true });
+      }
+      
+      const backupFile = path.join(backupDir, backupFileName);
+      fs.writeFileSync(backupFile, JSON.stringify(db, null, 2));
+      console.log('💾 Backup created:', backupFile);
+      
+      // Keep only last 10 backups in each location
+      cleanupBackups(backupDir);
+    } catch (error) {
+      console.error('❌ Backup failed for', backupDir, ':', error.message);
+    }
   }
 }
 
-function cleanupBackups() {
+function cleanupBackups(backupDir) {
   try {
-    const files = fs.readdirSync(DATA_DIR)
+    const files = fs.readdirSync(backupDir)
       .filter(file => file.startsWith('backup_') && file.endsWith('.json'))
       .map(file => ({
         name: file,
-        path: path.join(DATA_DIR, file),
-        time: fs.statSync(path.join(DATA_DIR, file)).mtime
+        path: path.join(backupDir, file),
+        time: fs.statSync(path.join(backupDir, file)).mtime
       }))
       .sort((a, b) => b.time - a.time);
     
-    // Remove old backups (keep only 5)
-    files.slice(5).forEach(file => {
+    // Remove old backups (keep only 10)
+    files.slice(10).forEach(file => {
       fs.unlinkSync(file.path);
       console.log('🗑️ Removed old backup:', file.name);
     });
